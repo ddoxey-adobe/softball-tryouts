@@ -124,8 +124,20 @@ td{padding:5px 7px;border-bottom:1px solid rgba(255,255,255,0.015);color:var(--t
 
 <div class="body">
 
-<!-- 2025 ROSTER -->
-<div id="tab-roster25" class="tab-content"><div class="card"><div class="sec-t">📋 2025 Roster</div><div class="stats" id="r25-stats"></div></div><div class="card" style="border-color:rgba(248,113,113,0.15);"><div class="sec-t" style="color:var(--red);">🚨 Not Returning</div><div id="not-ret-list"></div></div><div class="card" style="border-color:rgba(52,211,153,0.15);"><div class="sec-t" style="color:var(--green);">✅ Returning</div><div id="ret-list"></div></div><div class="card"><div class="sec-t">🔍 Gaps to Fill</div><div id="gaps-list"></div></div></div>
+<!-- ROSTER (year switcher) -->
+<div id="tab-roster25" class="tab-content">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div class="sec-t" style="margin:0;">📋 Pirates Roster</div>
+      <div style="display:flex;gap:3px;">
+        <button class="fbtn active" id="yr-2026-btn" onclick="setRosterYear(2026)">2026</button>
+        <button class="fbtn" id="yr-2025-btn" onclick="setRosterYear(2025)">2025</button>
+      </div>
+    </div>
+    <div class="stats" id="roster-stats"></div>
+  </div>
+  <div id="roster-content"></div>
+</div>
 
 <!-- RUBRIC -->
 <div id="tab-rubric" class="tab-content active"><div class="card"><div class="sec-t">🥎 Tryout Stations</div><div id="stations"></div></div><div class="card"><div class="sec-t">📏 Scoring Anchors</div><div id="anchors"></div></div><div class="card"><div class="sec-t">🎯 Rating Scale</div><div id="rscale"></div></div></div>
@@ -516,33 +528,184 @@ function renderDraft(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 2025 ROSTER
+// ROSTER TAB (unified 2025/2026 with year switcher)
 // ═══════════════════════════════════════════════════════════════
+
+var rosterYear = 2026;
+
+// 2026 Pirates Roster
+var pirates2026 = [
+  {n:1, nm:"Jessica Allen", type:"returning", pos:"OF/2B", note:"Returning. Only natural OF from 2025. 9th grade."},
+  {n:2, nm:"Teagan Doxey", type:"returning", pos:"1B/C/3B", note:"Returning. Primary 1B, emergency catcher. 9th grade."},
+  {n:3, nm:"Aurie Ellison", type:"returning", pos:"2B/SS/3B", note:"Returning. Most versatile player. 9th grade."},
+  {n:4, nm:"Rose Hall", type:"returning", pos:"P/1B", note:"Returning. Only experienced pitcher. Protect her arm. 8th grade."},
+  {n:5, nm:"Kaylie Jo Kirk", type:"returning", pos:"3B/2B/SS", note:"Returning. Solid 3B, good glove. 8th grade."},
+  {n:6, nm:"Kaizley Long", type:"drafted", pos:"TBD", note:"Draft Round 1. #41 from tryout list."},
+  {n:7, nm:"Penny Mickiewicz", type:"drafted", pos:"TBD", note:"Draft Round 2. #19. 9th grade, Willowcreek."},
+  {n:8, nm:"Rilo Stembridge", type:"drafted", pos:"TBD", note:"Draft Round 3. #30. 7th grade, Willowcreek."},
+  {n:9, nm:"Evie Woffinden", type:"drafted", pos:"TBD", note:"Draft Round 4. #35. 7th grade, Willowcreek."},
+  {n:10, nm:"Lucy Norton", type:"drafted", pos:"TBD", note:"Draft Round 5. #21. 8th grade, Eagle Mtn."},
+  {n:11, nm:"Jayden Fawson", type:"drafted", pos:"TBD", note:"Draft Round 6. #39. 7th grade."},
+  {n:12, nm:"Autumn Clucas", type:"drafted", pos:"TBD", note:"Draft Round 7. #6. 9th grade."},
+  {n:13, nm:"Kynzlee Miller", type:"drafted", pos:"TBD", note:"Draft Round 8. #20. 7th grade, Viewpoint."},
+];
+
+// 2025 roster data (same as before)
+var r25=[
+  {id:"quincy",n:21,nm:"Quincy",pos:["C","SS","3B"],pri:"C",def:"aged_out",note:"Primary catcher. Strong arm, leadership."},
+  {id:"leah",n:25,nm:"Leah",pos:["LCF","SS","2B"],pri:"OF",def:"aged_out",note:"Versatile OF + infield depth."},
+  {id:"keira",n:30,nm:"Keira",pos:["RF","LF","2B"],pri:"OF",def:"aged_out",note:"Steady RF. OF depth loss."},
+  {id:"kinleigh",n:28,nm:"KinLeigh",pos:["P","SS","1B"],pri:"P/SS",def:"not_returning",note:"Co-pitcher + primary SS. Huge loss."},
+  {id:"taya",n:0,nm:"Taya",pos:["C","LF","RF"],pri:"C/OF",def:"not_returning",note:"Backup catcher. Both catchers now gone."},
+  {id:"lola",n:29,nm:"Lola",pos:["RF","RCF","LCF"],pri:"OF",def:"not_returning",note:"OF depth loss."},
+  {id:"chloe",n:31,nm:"Chloe",pos:["LF","P","2B","LCF"],pri:"OF/P",def:"not_returning",note:"Emergency pitcher + OF. Versatile loss."},
+  {id:"jessica",n:13,nm:"Jessica (Allen)",pos:["RCF","2B","LCF"],pri:"OF",def:"returning",note:"Returning for 2026."},
+  {id:"teagan",n:34,nm:"Teagan (Doxey)",pos:["1B","C","3B"],pri:"1B",def:"returning",note:"Returning for 2026."},
+  {id:"aurie",n:32,nm:"Aurie (Ellison)",pos:["2B","SS","3B","LF"],pri:"2B/SS",def:"returning",note:"Returning for 2026."},
+  {id:"rose",n:33,nm:"Rose (Hall)",pos:["P","1B","RCF"],pri:"P",def:"returning",note:"Returning for 2026."},
+  {id:"kayliej",n:27,nm:"Kaylie Jo (Kirk)",pos:["3B","2B","SS"],pri:"3B",def:"returning",note:"Returning for 2026."},
+];
+
 function get25St(id){return(STATE.roster25Status&&STATE.roster25Status[id])||r25.find(function(x){return x.id===id;}).def;}
 function set25St(id,st){if(!STATE.roster25Status)STATE.roster25Status={};STATE.roster25Status[id]=st;fbSave();render25();}
 function cyc25(id){var c=get25St(id);if(c==="aged_out")return;var n=c==="returning"?"not_returning":c==="not_returning"?"returning":"returning";set25St(id,n);}
 
+function setRosterYear(yr){
+  rosterYear=yr;
+  document.getElementById('yr-2025-btn').className=yr===2025?'fbtn active':'fbtn';
+  document.getElementById('yr-2026-btn').className=yr===2026?'fbtn active':'fbtn';
+  render25();
+}
+
 function render25(){
   try{
-  var all=r25.map(function(p){return{id:p.id,n:p.n,nm:p.nm,pos:p.pos,pri:p.pri,note:p.note,status:get25St(p.id)};});
-  var notR=all.filter(function(p){return p.status==="not_returning"||p.status==="aged_out";});
-  var ret=all.filter(function(p){return p.status==="returning";});
+  var statsEl=document.getElementById('roster-stats');
+  var contentEl=document.getElementById('roster-content');
+  if(!statsEl||!contentEl)return;
 
-  document.getElementById('r25-stats').innerHTML='<div class="stat"><div class="stat-l">Total</div><div class="stat-v" style="color:var(--accent);">12</div></div><div class="stat"><div class="stat-l">Returning</div><div class="stat-v" style="color:var(--green);">'+ret.length+'</div></div><div class="stat"><div class="stat-l">Gone</div><div class="stat-v" style="color:var(--red);">'+notR.length+'</div></div><div class="stat"><div class="stat-l">Need to Draft</div><div class="stat-v" style="color:var(--orange);">'+(12-ret.length)+'</div></div>';
+  if(rosterYear===2026){
+    // 2026 ROSTER VIEW
+    var ret=pirates2026.filter(function(p){return p.type==="returning";});
+    var drafted=pirates2026.filter(function(p){return p.type==="drafted";});
 
-  document.getElementById('not-ret-list').innerHTML=notR.length?notR.map(function(p){var isAO=p.status==="aged_out";return'<div style="padding:10px;border-radius:7px;background:var(--red)06;border:1px solid var(--red)18;margin-bottom:6px;"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;"><div style="display:flex;align-items:center;gap:6px;"><span style="font-weight:700;color:var(--white);font-size:12px;">'+p.nm+'</span>'+pl(isAO?"AGED OUT":"NOT RET","var(--red)")+pl(p.pri,"var(--orange)")+'</div>'+(isAO?'':'<button class="btn btn-sm" onclick="cyc25(\''+p.id+'\')">↻</button>')+'</div><div style="font-size:10px;color:var(--dim);margin-top:4px;">'+p.pos.join(', ')+' — '+p.note+'</div></div>';}).join(''):'<div style="color:var(--dim);font-size:11px;padding:8px;">None</div>';
+    statsEl.innerHTML=
+      '<div class="stat"><div class="stat-l">Total</div><div class="stat-v" style="color:var(--accent);">'+pirates2026.length+'</div></div>'
+      +'<div class="stat"><div class="stat-l">Returning</div><div class="stat-v" style="color:var(--green);">'+ret.length+'</div></div>'
+      +'<div class="stat"><div class="stat-l">Drafted</div><div class="stat-v" style="color:var(--cyan);">'+drafted.length+'</div></div>'
+      +'<div class="stat"><div class="stat-l">Season</div><div class="stat-v" style="color:var(--accent);">2026</div></div>';
 
-  document.getElementById('ret-list').innerHTML=ret.length?ret.map(function(p){return'<div style="padding:10px;border-radius:7px;background:var(--green)06;border:1px solid var(--green)18;margin-bottom:6px;"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;"><div style="display:flex;align-items:center;gap:6px;"><span style="font-weight:700;color:var(--white);font-size:12px;">'+p.nm+'</span>'+pl("RET","var(--green)")+pl(p.pri,"var(--blue)")+'</div><button class="btn btn-sm" onclick="cyc25(\''+p.id+'\')">↻</button></div><div style="font-size:10px;color:var(--dim);margin-top:4px;">'+p.pos.join(', ')+' — '+p.note+'</div></div>';}).join(''):'<div style="color:var(--dim);font-size:11px;padding:8px;">None confirmed</div>';
+    var html='';
 
-  // Dynamic gaps
-  var posMap={"Catcher":"C","Pitcher":"P","Shortstop":"SS","1st Base":"1B","2nd Base":"2B","3rd Base":"3B","Left Field":"OF","Left Center Field":"OF","Right Center Field":"OF","Right Field":"OF","C":"C","P":"P","SS":"SS","1B":"1B","2B":"2B","3B":"3B","LF":"OF","LCF":"OF","RCF":"OF","RF":"OF"};
-  var lost={},have={};
-  notR.forEach(function(p){p.pos.forEach(function(ps){var c=posMap[ps]||"OF";if(!lost[c])lost[c]=[];if(lost[c].indexOf(p.nm)===-1)lost[c].push(p.nm);});});
-  ret.forEach(function(p){p.pos.forEach(function(ps){var c=posMap[ps]||"OF";if(!have[c])have[c]=[];if(have[c].indexOf(p.nm)===-1)have[c].push(p.nm);});});
-  var sevM={"C":"Critical","P":"High","SS":"High","OF":"High","1B":"Medium","2B":"Medium","3B":"Medium"};
-  var colM={"Critical":"var(--red)","High":"var(--orange)","Medium":"var(--yellow)"};
-  var gH='';["C","P","SS","1B","2B","3B","OF"].forEach(function(cat){var l=lost[cat];if(!l)return;var h=have[cat]||[];var sv=sevM[cat]||"Medium";var co=colM[sv];gH+='<div style="padding:10px;border-radius:7px;background:'+co+'06;border:1px solid '+co+'18;margin-bottom:6px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><span style="font-weight:700;color:var(--white);font-size:12px;">'+cat+'</span>'+pl(sv,co)+'</div><div style="font-size:10px;"><span style="color:var(--red);font-weight:600;">Lost:</span> <span style="color:var(--text);">'+l.join(', ')+'</span></div><div style="font-size:10px;"><span style="color:var(--green);font-weight:600;">Have:</span> <span style="color:var(--text);">'+(h.length?h.join(', '):'None — must draft')+'</span></div></div>';});
-  document.getElementById('gaps-list').innerHTML=gH||'<div style="color:var(--green);font-size:11px;">All positions covered.</div>';
+    // Returning section
+    html+='<div class="card" style="border-color:rgba(52,211,153,0.15);"><div class="sec-t" style="color:var(--green);">✅ Returning Players (5)</div>';
+    ret.forEach(function(p,i){
+      html+='<div style="padding:10px;border-radius:7px;background:rgba(52,211,153,0.03);border:1px solid rgba(52,211,153,0.08);margin-bottom:6px;">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+          +'<div style="display:flex;align-items:center;gap:6px;">'
+            +'<span style="width:26px;height:26px;border-radius:6px;background:rgba(52,211,153,0.12);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:var(--green);">#'+p.n+'</span>'
+            +'<span style="font-weight:700;color:var(--white);font-size:12px;">'+p.nm+'</span>'
+          +'</div>'
+          +'<div style="display:flex;gap:3px;">'+pl("RETURNING","var(--green)")+pl(p.pos,"var(--blue)")+'</div>'
+        +'</div>'
+        +'<div style="font-size:10px;color:var(--dim);margin-top:4px;">'+p.note+'</div>'
+      +'</div>';
+    });
+    html+='</div>';
+
+    // Drafted section
+    html+='<div class="card" style="border-color:rgba(34,211,238,0.15);"><div class="sec-t" style="color:var(--cyan);">🏆 Drafted Players (8)</div>';
+    drafted.forEach(function(p,i){
+      var rd=i+1;
+      html+='<div style="padding:10px;border-radius:7px;background:rgba(34,211,238,0.03);border:1px solid rgba(34,211,238,0.08);margin-bottom:6px;">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+          +'<div style="display:flex;align-items:center;gap:6px;">'
+            +'<span style="width:26px;height:26px;border-radius:6px;background:rgba(34,211,238,0.12);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:var(--cyan);">#'+p.n+'</span>'
+            +'<span style="font-weight:700;color:var(--white);font-size:12px;">'+p.nm+'</span>'
+          +'</div>'
+          +'<div style="display:flex;gap:3px;">'+pl("RD "+rd,"var(--cyan)")+pl(p.pos,"var(--accent)")+'</div>'
+        +'</div>'
+        +'<div style="font-size:10px;color:var(--dim);margin-top:4px;">'+p.note+'</div>'
+      +'</div>';
+    });
+    html+='</div>';
+
+    // Quick roster table
+    html+='<div class="card"><div class="sec-t">📊 Full Roster</div><table><thead><tr><th>#</th><th>Name</th><th>Type</th><th>Position</th></tr></thead><tbody>';
+    pirates2026.forEach(function(p,i){
+      var tc2=p.type==="returning"?"var(--green)":"var(--cyan)";
+      var tl2=p.type==="returning"?"RET":"DRAFT";
+      html+='<tr class="'+(i%2===0?'row-e':'')+'"><td style="font-weight:700;color:var(--dim);">'+p.n+'</td><td style="font-weight:600;color:var(--white);">'+p.nm+'</td><td>'+pl(tl2,tc2)+'</td><td style="color:var(--accent);">'+p.pos+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+
+    contentEl.innerHTML=html;
+
+  } else {
+    // 2025 ROSTER VIEW (with status toggles)
+    var all=r25.map(function(p){return{id:p.id,n:p.n,nm:p.nm,pos:p.pos,pri:p.pri,note:p.note,status:get25St(p.id)};});
+    var notR=all.filter(function(p){return p.status==="not_returning"||p.status==="aged_out";});
+    var retOld=all.filter(function(p){return p.status==="returning";});
+
+    statsEl.innerHTML=
+      '<div class="stat"><div class="stat-l">Total</div><div class="stat-v" style="color:var(--accent);">12</div></div>'
+      +'<div class="stat"><div class="stat-l">Returned</div><div class="stat-v" style="color:var(--green);">'+retOld.length+'</div></div>'
+      +'<div class="stat"><div class="stat-l">Gone</div><div class="stat-v" style="color:var(--red);">'+notR.length+'</div></div>'
+      +'<div class="stat"><div class="stat-l">Season</div><div class="stat-v" style="color:var(--accent);">2025</div></div>';
+
+    var html2='';
+
+    // Not returning
+    html2+='<div class="card" style="border-color:rgba(248,113,113,0.15);"><div class="sec-t" style="color:var(--red);">🚨 Not Returning</div>';
+    if(notR.length){
+      notR.forEach(function(p){
+        var isAO=p.status==="aged_out";
+        html2+='<div style="padding:10px;border-radius:7px;background:rgba(248,113,113,0.03);border:1px solid rgba(248,113,113,0.08);margin-bottom:6px;">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">'
+            +'<div style="display:flex;align-items:center;gap:6px;"><span style="font-weight:700;color:var(--white);font-size:12px;">'+p.nm+'</span>'+pl(isAO?"AGED OUT":"NOT RET","var(--red)")+pl(p.pri,"var(--orange)")+'</div>'
+            +(isAO?'':'<button class="btn btn-sm" onclick="cyc25(\''+p.id+'\')">&#8635;</button>')
+          +'</div>'
+          +'<div style="font-size:10px;color:var(--dim);margin-top:4px;">'+p.pos.join(', ')+' -- '+p.note+'</div>'
+        +'</div>';
+      });
+    }else{html2+='<div style="color:var(--dim);font-size:11px;padding:8px;">None</div>';}
+    html2+='</div>';
+
+    // Returning
+    html2+='<div class="card" style="border-color:rgba(52,211,153,0.15);"><div class="sec-t" style="color:var(--green);">✅ Returned for 2026</div>';
+    if(retOld.length){
+      retOld.forEach(function(p){
+        html2+='<div style="padding:10px;border-radius:7px;background:rgba(52,211,153,0.03);border:1px solid rgba(52,211,153,0.08);margin-bottom:6px;">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">'
+            +'<div style="display:flex;align-items:center;gap:6px;"><span style="font-weight:700;color:var(--white);font-size:12px;">'+p.nm+'</span>'+pl("RET","var(--green)")+pl(p.pri,"var(--blue)")+'</div>'
+            +'<button class="btn btn-sm" onclick="cyc25(\''+p.id+'\')">&#8635;</button>'
+          +'</div>'
+          +'<div style="font-size:10px;color:var(--dim);margin-top:4px;">'+p.pos.join(', ')+' -- '+p.note+'</div>'
+        +'</div>';
+      });
+    }else{html2+='<div style="color:var(--dim);font-size:11px;padding:8px;">None confirmed</div>';}
+    html2+='</div>';
+
+    // Gaps
+    html2+='<div class="card"><div class="sec-t">🔍 Gaps Filled by Draft</div>';
+    var posMap={"C":"C","P":"P","SS":"SS","1B":"1B","2B":"2B","3B":"3B","LF":"OF","LCF":"OF","RCF":"OF","RF":"OF"};
+    var lost={},have={};
+    notR.forEach(function(p){p.pos.forEach(function(ps){var c=posMap[ps]||"OF";if(!lost[c])lost[c]=[];if(lost[c].indexOf(p.nm)===-1)lost[c].push(p.nm);});});
+    retOld.forEach(function(p){p.pos.forEach(function(ps){var c=posMap[ps]||"OF";if(!have[c])have[c]=[];if(have[c].indexOf(p.nm)===-1)have[c].push(p.nm);});});
+    var gH='';
+    ["C","P","SS","1B","2B","3B","OF"].forEach(function(cat){
+      var l=lost[cat];if(!l)return;
+      var h=have[cat]||[];
+      gH+='<div style="padding:8px;border-radius:6px;background:var(--card);border:1px solid var(--border);margin-bottom:4px;font-size:10px;">'
+        +'<span style="font-weight:700;color:var(--white);">'+cat+'</span> '
+        +'<span style="color:var(--red);">Lost: '+l.join(', ')+'</span> | '
+        +'<span style="color:var(--green);">Have: '+(h.length?h.join(', '):'None')+'</span>'
+      +'</div>';
+    });
+    html2+=gH||'<div style="color:var(--green);font-size:11px;">All covered.</div>';
+    html2+='</div>';
+
+    contentEl.innerHTML=html2;
+  }
   }catch(e){console.error("render25 err:",e);}
 }
 
